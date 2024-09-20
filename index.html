@@ -30,7 +30,7 @@
             <div class="row">
                 <ol class="breadcrumb" style="left: 20px; right: 20px; position: fixed; z-index: 1000;">
                     <li><a href="" ng-click="index.reload()" title="Reload"><i ng-class="{'loader': index.reloading.running || index.loading.running}" class="glyphicon glyphicon-refresh"></i></a></li>
-                    <li ng-class="::{'active': $last}" ng-repeat="part in index.path_parts"><span ng-if="::$last">{{:: part.name }} <small ng-if="index.files.length > 5">({{index.files.length}})</small></span><a ng-if="::!$last" href="#{{:: part.path }}" ng-bind="::part.name"></a></li>
+                    <li ng-class="::{'active': $last}" ng-repeat="part in index.path_parts"><span ng-if="::$last">{{:: part.name }} <small ng-if="index.files.length > 1">({{index.files.length}})</small></span><a ng-if="::!$last" href="#{{:: part.path }}" ng-bind="::part.name"></a></li>
                 </ol>
             </div>
 
@@ -75,6 +75,9 @@
         </div>
         <script>
 angular.module('index', ['ng'])
+.config(['$locationProvider', function($locationProvider) {
+  $locationProvider.hashPrefix('');
+}])
 .controller('IndexController', ['$http', '$location', '$scope', '$window', '$timeout',
 function ($http, $location, $scope, window, $timeout, FILES_BASE_URL) {
     var self = this;
@@ -170,6 +173,7 @@ function ($http, $location, $scope, window, $timeout, FILES_BASE_URL) {
             method: 'GET',
             url: self.config.base_index_url + (path || '') + (self.config.tail_slash? '/': '')
         }).then(function (response) {
+            var lastPath = window.localStorage.getItem('lastPath');
             var files = response.data || [];
 
             for (var i = 0, l = files.length; i < l; i++) {
@@ -181,6 +185,14 @@ function ($http, $location, $scope, window, $timeout, FILES_BASE_URL) {
 
             window.localStorage.setItem('lastPath', path);
             window.scrollTo(0, 0);
+            if(lastPath && lastPath != path) {
+              // When navigating up, make the link to the previous location visible
+              setTimeout(function() {
+                  var current = lastPath.substring(lastPath.lastIndexOf('/') + 1);
+                  var lastDir = document.querySelector('a[href$="' + current + '"]');
+                  if(lastDir) { lastDir.scrollIntoView({block: "center"}); }
+              }, 0);
+            }
         }, function (response) {
             self.error = response;
             self.loading.stop();
@@ -276,7 +288,7 @@ function ($http, $location, $scope, window, $timeout, FILES_BASE_URL) {
         var exp = Math.floor(Math.log(number) / Math.log(1024));
         var result = number / Math.pow(1024, exp);
         result = (result % 1 > (1 / Math.pow(1024, exp - 1))) ? result.toFixed(2) : result.toFixed(0);
-        return result + ' ' + si[exp - 1] + 'ib';
+        return result + ' ' + si[exp - 1] + 'iB';
     };
 });
         </script>
